@@ -1,0 +1,21 @@
+{
+  "short_name": "VerdeGrid",
+  "name": "Optimizador de Espacios Verdes",
+  "icons": [
+    {
+      "src": "https://images.unsplash.com/photo-1592417817098-8f3d6eb19675?w=192&h=192&fit=crop",
+      "type": "image/jpeg",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://images.unsplash.com/photo-1592417817098-8f3d6eb19675?w=512&h=512&fit=crop",
+      "type": "image/jpeg",
+      "sizes": "512&x512"
+    }
+  ],
+  "start_url": "./index.html",
+  "background_color": "#14532d",
+  "theme_color": "#22c55e",
+  "display": "standalone",
+  "orientation": "portrait"
+}
