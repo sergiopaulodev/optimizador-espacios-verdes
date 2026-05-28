@@ -25,6 +25,27 @@
                 </span>
             </div>
         </div>
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 space-y-4">
+            <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Mapeo de Terreno</h2>
+            
+            <div class="flex gap-2">
+                <button id="btn-start" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 px-4 rounded-lg shadow-sm transition-colors cursor-pointer text-center">
+                    Iniciar Sesión
+                </button>
+                <button id="btn-stop" class="flex-1 bg-gray-200 text-gray-400 font-medium py-2.5 px-4 rounded-lg transition-colors cursor-not-allowed text-center" disabled>
+                    Detener Sesión
+                </button>
+            </div>
+
+            <div class="border-t border-gray-100 pt-3 flex justify-between items-center text-sm">
+                <span class="text-gray-600">Puntos GPS Capturados:</span>
+                <span id="geo-counter" class="font-mono font-bold bg-gray-100 px-2 py-0.5 rounded text-gray-800">0</span>
+            </div>
+            
+            <div id="geo-debug" class="text-xs text-gray-400 font-mono text-center truncate hidden">
+                Esperando señal...
+            </div>
+        </div>
     </main>
 
     <script src="js/app.js" type="module"></script>
