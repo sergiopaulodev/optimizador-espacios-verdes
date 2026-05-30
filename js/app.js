@@ -7,11 +7,13 @@
 import { WakeLockManager } from './utils/wakeLock.js';
 import { StorageService } from './services/storageService.js';
 import { GpsService } from './services/gpsService.js';
+import { CanvasManager } from './core/canvasManager.js';
 
 // Instancias globales de control
 const wakeLockManager = new WakeLockManager();
 const storageService = new StorageService();
 const gpsService = new GpsService();
+const canvasManager = new CanvasManager('terrain-canvas');
 
 // Estado en memoria de la sesión activa de muestreo
 let lastSavedTime = 0;
@@ -47,14 +49,14 @@ function updateRouteUI() {
 }
 
 /**
- * Procesa las coordenadas entrantes del hardware aplicando el acelerador/filtro por tiempo.
+ * Procesa las coordenadas entrantes del hardware aplicando el acelerador por tiempo.
  * @param {number} lat 
  * @param {number} lng 
  */
 function handleGpsTracking(lat, lng) {
   const now = Date.now();
   
-  // Mostrar telemetría en tiempo real para el operario (auditoría visual)
+  // Mostrar telemetría en tiempo real para el operario
   geoDebugEl.classList.remove('hidden');
   geoDebugEl.textContent = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
 
@@ -74,6 +76,13 @@ function handleGpsTracking(lat, lng) {
  * Inicia formalmente el registro y bloquea los controles correspondientes.
  */
 function startSession() {
+
+  console.log('Sesión iniciada. Limpiando datos anteriores para nueva medición...');
+  
+  // Limpiar el recorrido previo en el almacenamiento local para empezar en limpio
+  storageService.clearRoute();
+  updateRouteUI();
+
   btnStart.disabled = true;
   btnStart.className = 'flex-1 bg-gray-200 text-gray-400 font-medium py-2.5 px-4 rounded-lg transition-colors cursor-not-allowed text-center';
   
@@ -96,6 +105,9 @@ function startSession() {
  * Detiene el registro de coordenadas del hardware.
  */
 function stopSession() {
+
+  console.log('Sesión finalizada. Procesando datos para el mapa de calor...');
+
   btnStop.disabled = true;
   btnStop.className = 'flex-1 bg-gray-200 text-gray-400 font-medium py-2.5 px-4 rounded-lg transition-colors cursor-not-allowed text-center';
   
@@ -104,6 +116,16 @@ function stopSession() {
 
   gpsService.stopTracking();
   geoDebugEl.classList.add('hidden');
+
+  // Recuperar las coordenadas acumuladas en la sesión actual
+  const finalRoute = storageService.getRoute();
+  
+  // Invocar al CanvasManager para procesar la matriz dinámica y pintar la escala de colores
+  if (finalRoute.length > 0) {
+    canvasManager.renderizarRecorrido(finalRoute);
+  } else {
+    console.log('No se capturaron puntos suficientes para generar el mapa de calor.');
+  }
 }
 
 /**
@@ -138,8 +160,11 @@ async function init() {
   btnStart.addEventListener('click', startSession);
   btnStop.addEventListener('click', stopSession);
 
-  // 4. Cargar estado previo si el operario recarga la app accidentalmente
-  updateRouteUI();
+  // Intentar renderizar si el usuario recarga la página con datos existentes en el almacenamiento
+  const existingRoute = storageService.getRoute();
+  if (existingRoute.length > 0) {
+    canvasManager.renderizarRecorrido(existingRoute);
+  }
 
 }
 
