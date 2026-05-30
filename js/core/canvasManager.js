@@ -117,32 +117,55 @@ export class CanvasManager {
       }
     }
 
-    // 3. FASE D: Renderizado Físico en Canvas aplicando Escala Analítica
-    // Limpiar por completo el lienzo antes de redibujar
+    // 3. FASE D: Renderizado Físico con Interpolación de Trayectoria Continua
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Bucles anidados de alta eficiencia para barrer la cuadrícula
-    for (let x = 0; x < this.canvas.width; x++) {
-      for (let y = 0; y < this.canvas.height; y++) {
-        const celda = this.matriz[x][y];
-        
-        // Criterio de aceptación: Si no hay visitas, mantener fondo transparente
-        if (celda.visitas === 0) continue;
+    // Configurar el estilo del trazo del lienzo para conectar los puntos sin baches
+    this.ctx.lineWidth = 1; // Grosor de 1 metro (1px)
+    this.ctx.lineCap = 'round';
+    this.ctx.lineJoin = 'round';
 
-        // Evaluación de la escala analítica de reincidencia
+    // En lugar de barrer la matriz a ciegas, dibujamos el hilo conductor del recorrido
+    for (let i = 0; i < route.length; i++) {
+      const coordenada = route[i];
+      
+      // Traducir coordenadas actuales a píxeles
+      const metrosX = Math.floor((coordenada.lng - lngMin) * factorLongitud);
+      const metrosY = Math.floor((coordenada.lat - latMin) * this.METROS_POR_GRADO);
+
+      // Obtener el contador de visitas de la matriz para decidir el color
+      if (metrosX >= 0 && metrosX < this.canvas.width && metrosY >= 0 && metrosY < this.canvas.height) {
+        const celda = this.matriz[metrosX][metrosY];
+
+        // Asignación de escala cromática según reincidencia
         if (celda.visitas >= 1 && celda.visitas <= 2) {
-          this.ctx.fillStyle = '#2ECC71'; // Verde: Corte Óptimo
+          this.ctx.strokeStyle = '#2ECC71'; // Verde
+          this.ctx.fillStyle = '#2ECC71';
         } else if (celda.visitas >= 3 && celda.visitas <= 5) {
-          this.ctx.fillStyle = '#F1C40F'; // Amarillo/Ocre: Zona de Maniobra
+          this.ctx.strokeStyle = '#F1C40F'; // Amarillo
+          this.ctx.fillStyle = '#F1C40F';
         } else if (celda.visitas >= 6) {
-          this.ctx.fillStyle = '#E74C3C'; // Rojo: Reincidencia Crítica
+          this.ctx.strokeStyle = '#E74C3C'; // Rojo
+          this.ctx.fillStyle = '#E74C3C';
         }
 
-        // Pintar físicamente el bloque elemental de 1 metro cuadrado (1px x 1px)
-        this.ctx.fillRect(x, y, 1, 1);
+        // 1. Pintar el nodo estructural
+        this.ctx.fillRect(metrosX, metrosY, 1, 1);
+
+        // 2. INTERPOLACIÓN: Si hay un punto anterior, trazar una línea conectora para eliminar baches
+        if (i > 0) {
+          const puntoAnterior = route[i - 1];
+          const antMetrosX = Math.floor((puntoAnterior.lng - lngMin) * factorLongitud);
+          const antMetrosY = Math.floor((puntoAnterior.lat - latMin) * this.METROS_POR_GRADO);
+
+          this.ctx.beginPath();
+          this.ctx.moveTo(antMetrosX, antMetrosY);
+          this.ctx.lineTo(metrosX, metrosY);
+          this.ctx.stroke();
+        }
       }
     }
 
-    console.log('🎨 Renderizado físico del mapa de calor completado con éxito.');
+    console.log('🎨 Renderizado físico con interpolación lineal completado con éxito.');
   }
 }
