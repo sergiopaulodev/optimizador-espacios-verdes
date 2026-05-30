@@ -1,0 +1,20 @@
+/**
+ * css/styles.css
+ * Propósito: Estilos globales de la aplicación y renderizado del Canvas.
+ */
+
+/* Forzar que el Canvas dinámico se estire visualmente al 100% de su contenedor */
+#terrain-canvas {
+    width: 100%;
+    height: auto;
+    
+    /* CRÍTICO: Evita que el navegador ponga borrosos los píxeles al estirarlos.
+       Queremos ver los bloques de 1 metro cuadrados perfectamente definidos. */
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+
+/* Animación sutil para el destello del contador GPS */
+.bg-green-200 {
+    transition: background-color 0.3s ease;
+}

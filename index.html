@@ -46,6 +46,15 @@
                 Esperando señal...
             </div>
         </div>
+        <div id="canvas-card" class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 space-y-2 flex flex-col items-center">
+            <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider self-start w-full">Mapa de Calor Analítico</h2>
+            
+            <div class="w-full flex justify-center bg-gray-50 rounded-lg p-2 border border-dashed border-gray-200 overflow-auto max-h-64">
+                <canvas id="terrain-canvas" class="bg-white shadow-inner max-w-full" style="transform: scaleY(-1); image-rendering: pixelated;"></canvas>
+            </div>
+            <p class="text-[10px] text-gray-400 text-center">Escala: 1 píxel equivale a 1 metro cuadrado de terreno físico.</p>
+        </div>
+
     </main>
 
     <script src="js/app.js" type="module"></script>
