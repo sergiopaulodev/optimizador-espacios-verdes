@@ -8,6 +8,7 @@ import { WakeLockManager } from './utils/wakeLock.js';
 import { StorageService } from './services/storageService.js';
 import { GpsService } from './services/gpsService.js';
 import { CanvasManager } from './core/canvasManager.js';
+import { calcularDistanciaMetros } from './utils/geoUtils.js';
 
 // Instancias globales de control
 const wakeLockManager = new WakeLockManager();
@@ -49,26 +50,56 @@ function updateRouteUI() {
 }
 
 /**
- * Procesa las coordenadas entrantes del hardware aplicando el acelerador por tiempo.
+ * Procesa las coordenadas entrantes aplicando el doble filtro analítico:
+ * 1. Filtro de Tiempo: Mínimo 3 segundos.
+ * 2. Filtro de Espacio: Desplazamiento real mayor a 1 metro (Elimina el Jitter).
  * @param {number} lat 
  * @param {number} lng 
  */
 function handleGpsTracking(lat, lng) {
   const now = Date.now();
   
-  // Mostrar telemetría en tiempo real para el operario
+  // Telemetría en tiempo real en la pantalla
   geoDebugEl.classList.remove('hidden');
   geoDebugEl.textContent = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
 
-  // Validar si ya transcurrieron los 3 segundos desde la última captura guardada
+  // 1. PRIMER CANDADO: Validar filtro de tiempo (3 segundos)
   if (now - lastSavedTime >= GPS_SAMPLE_INTERVAL_MS) {
-    storageService.savePosition(lat, lng);
-    lastSavedTime = now;
-    updateRouteUI();
+    const route = storageService.getRoute();
     
-    // Animación visual de destello para indicar confirmación de guardado local
-    geoCounterEl.classList.add('bg-green-200');
-    setTimeout(() => geoCounterEl.classList.remove('bg-green-200'), 300);
+    // Si es el primer punto de la sesión, se guarda directamente de forma incondicional
+    if (route.length === 0) {
+      storageService.savePosition(lat, lng);
+      lastSavedTime = now;
+      updateRouteUI();
+      return;
+    }
+
+    // Obtener el último punto físico guardado en el disco
+    const ultimoPunto = route[route.length - 1];
+
+    // Calcular la distancia matemática real usando Haversine
+    const distanciaDesplazada = calcularDistanciaMetros(
+      ultimoPunto.lat, 
+      ultimoPunto.lng, 
+      lat, 
+      lng
+    );
+
+    console.log(`📡 Telemetría - Distancia calculada desde último punto: ${distanciaDesplazada.toFixed(2)} metros.`);
+
+    // 2. SEGUNDO CANDADO: Validar filtro de espacio (Mayor a 1 metro real)
+    if (distanciaDesplazada >= 1.0) {
+      storageService.savePosition(lat, lng);
+      lastSavedTime = now;
+      updateRouteUI();
+      
+      // Animación visual de confirmación
+      geoCounterEl.classList.add('bg-green-200');
+      setTimeout(() => geoCounterEl.classList.remove('bg-green-200'), 300);
+    } else {
+      console.log('⏳ Coordenada descartada por el filtro de Jitter (Desplazamiento menor a 1 metro). El operario está quieto.');
+    }
   }
 }
 
