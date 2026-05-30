@@ -1,8 +1,8 @@
 /**
  * js/core/canvasManager.js
  * Propósito: Capa de Presentación y Gestión del Canvas HTML5.
- * Calcula los extremos geográficos de la sesión, auto-dimensiona el lienzo
- * a escala 1px = 1m e inicializa la matriz lógica de reincidencia.
+ * Procesa el histórico de coordenadas, gestiona la matriz analítica
+ * de reincidencia y renderiza el mapa de calor a escala 1px = 1m.
  */
 
 export class CanvasManager {
@@ -69,7 +69,6 @@ export class CanvasManager {
 
   /**
    * FASE B: Inicializa una estructura de datos matricial pura (Array de Arrays)
-   * mapeando las dimensiones del Canvas actual rellenado con objetos de control.
    * @param {number} ancho - Columnas de la matriz (canvas.width)
    * @param {number} alto - Filas de la matriz (canvas.height)
    */
@@ -85,5 +84,65 @@ export class CanvasManager {
     }
     
     console.log(`📊 Matriz Analítica Inicializada en Memoria: ${ancho} columnas x ${alto} filas.`);
+  }
+
+  /**
+   * FASES C y D: Procesa todo el recorrido, llena la matriz lógica
+   * y dibuja físicamente los resultados aplicando la escala cromática.
+   * @param {Array<{lat: number, lng: number}>} route - Historial de coordenadas de la sesión.
+   */
+  renderizarRecorrido(route) {
+    if (!route || route.length === 0) return;
+
+    // 1. Configurar el escenario físico y lógico (Fases A y B)
+    const metadatosOrigen = this.configurarDimensionesDinamicas(route);
+    if (!metadatosOrigen) return;
+
+    const { latMin, lngMin, factorLongitud } = metadatosOrigen;
+    this.inicializarMatrizReincidencia(this.canvas.width, this.canvas.height);
+
+    // 2. FASE C: Mapeo del recorrido e incremento de contadores en la Matriz
+    for (const coordenada of route) {
+      // Traducir deltas geográficos a metros lineales relativos al origen (0,0)
+      const metrosX = (coordenada.lng - lngMin) * factorLongitud;
+      const metrosY = (coordenada.lat - latMin) * this.METROS_POR_GRADO;
+
+      // Obtener índices enteros correspondientes para la celda
+      const celdaX = Math.floor(metrosX);
+      const celdaY = Math.floor(metrosY);
+
+      // Validación de fronteras para evitar desbordamientos de memoria
+      if (celdaX >= 0 && celdaX < this.canvas.width && celdaY >= 0 && celdaY < this.canvas.height) {
+        this.matriz[celdaX][celdaY].visitas += 1;
+      }
+    }
+
+    // 3. FASE D: Renderizado Físico en Canvas aplicando Escala Analítica
+    // Limpiar por completo el lienzo antes de redibujar
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    // Bucles anidados de alta eficiencia para barrer la cuadrícula
+    for (let x = 0; x < this.canvas.width; x++) {
+      for (let y = 0; y < this.canvas.height; y++) {
+        const celda = this.matriz[x][y];
+        
+        // Criterio de aceptación: Si no hay visitas, mantener fondo transparente
+        if (celda.visitas === 0) continue;
+
+        // Evaluación de la escala analítica de reincidencia
+        if (celda.visitas >= 1 && celda.visitas <= 2) {
+          this.ctx.fillStyle = '#2ECC71'; // Verde: Corte Óptimo
+        } else if (celda.visitas >= 3 && celda.visitas <= 5) {
+          this.ctx.fillStyle = '#F1C40F'; // Amarillo/Ocre: Zona de Maniobra
+        } else if (celda.visitas >= 6) {
+          this.ctx.fillStyle = '#E74C3C'; // Rojo: Reincidencia Crítica
+        }
+
+        // Pintar físicamente el bloque elemental de 1 metro cuadrado (1px x 1px)
+        this.ctx.fillRect(x, y, 1, 1);
+      }
+    }
+
+    console.log('🎨 Renderizado físico del mapa de calor completado con éxito.');
   }
 }
